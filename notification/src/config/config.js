@@ -52,6 +52,8 @@ function getAdyenConfig(adyenMerchantAccount) {
     notificationBaseUrl: adyenConfig.notificationBaseUrl,
     enableHmacSignature,
     apiKey: adyenConfig.apiKey,
+    apiManagementUrl:
+      adyenConfig.apiManagementUrl || 'https://management-test.adyen.com/v1',
   }
 }
 

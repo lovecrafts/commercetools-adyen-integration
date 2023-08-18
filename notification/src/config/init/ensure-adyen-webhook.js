@@ -6,7 +6,7 @@ import { loadConfig } from '../config-loader.js'
 
 const mainLogger = getLogger()
 
-async function ensureAdyenWebhook(adyenApiKey, webhookUrl, merchantId) {
+async function ensureAdyenWebhook(adyenApiKey, webhookUrl, merchantId, apiManagementUrl) {
   try {
     const logger = mainLogger.child({
       adyen_merchant_id: merchantId,
@@ -21,7 +21,7 @@ async function ensureAdyenWebhook(adyenApiKey, webhookUrl, merchantId) {
     }
 
     const getWebhookResponse = await fetch(
-      `https://management-test.adyen.com/v1/merchants/${merchantId}/webhooks`,
+      `${apiManagementUrl}/merchants/${merchantId}/webhooks`,
       {
         method: 'GET',
         headers: {
@@ -45,7 +45,7 @@ async function ensureAdyenWebhook(adyenApiKey, webhookUrl, merchantId) {
     }
 
     const createWebhookResponse = await fetch(
-      `https://management-test.adyen.com/v1/merchants/${merchantId}/webhooks`,
+      `${apiManagementUrl}/merchants/${merchantId}/webhooks`,
       {
         body: JSON.stringify(webhookConfig),
         method: 'POST',
@@ -71,7 +71,7 @@ async function ensureAdyenWebhook(adyenApiKey, webhookUrl, merchantId) {
 
 async function ensureAdyenHmac(adyenApiKey, merchantId, webhookId) {
   const generateHmacResponse = await fetch(
-    `https://management-test.adyen.com/v1/merchants/${merchantId}/webhooks/${webhookId}/generateHmac`,
+    `${apiManagementUrl}/merchants/${merchantId}/webhooks/${webhookId}/generateHmac`,
     {
       method: 'POST',
       headers: {
@@ -96,13 +96,15 @@ async function ensureAdyenWebhooksForAllProjects() {
       const webhookId = await ensureAdyenWebhook(
         adyenConfig.apiKey,
         adyenConfig.notificationBaseUrl,
-        adyenMerchantId
+        adyenMerchantId,
+        adyenConfig.apiManagementUrl
       )
       if (adyenConfig.enableHmacSignature && !adyenConfig.secretHmacKey) {
         const hmacKey = await ensureAdyenHmac(
           adyenConfig.apiKey,
           adyenMerchantId,
-          webhookId
+          webhookId,
+          adyenConfig.apiManagementUrl
         )
         jsonConfig.adyen[adyenMerchantId].secretHmacKey = hmacKey
       }
