@@ -9,7 +9,7 @@ Find information on most frequently asked questions during integrating on **comm
 - [Can I use Adyen web components >= v5.0.0 with this integration ?](#can-i-use-adyen-web-components--v500-with-this-integration-)
 - [Does the integration support payment method X ?](#does-the-integration-support-payment-method-x-)
 - [Can I pass additional fields to payment requests?](#can-i-pass-additional-fields-to-payment-requests)
-- [Why we need to pass submit payment details twice for some payment methods?](#why-we-need-to-pass-submit-payment-details-twice-for-some-payment-methods)
+- [Do we need to pass additional fields to payment requests for 3D Secure 2 payment method?](#do-we-need-to-pass-additional-fields-to-payment-requests-for-3d-secure-2-payment-method)
 - [Can I remove a subscription I created?](#can-i-remove-a-subscription-i-created)
 - [How does the notification module find a matching payment?](#how-does-the-notification-module-find-a-matching-payment)
 - [Will we lose a notification if it was not processed for some reason?](#will-we-lose-a-notification-if-it-was-not-processed-for-some-reason)
@@ -27,22 +27,24 @@ Find information on most frequently asked questions during integrating on **comm
 
 ### Can I use Adyen web components >= v5.0.0 with this integration ?
 
-In v5.0.0 (released in October 2021) Adyen introduced a simplified way of integrating Web Components, using a single API endpoint. The `/sessions` release is only an orchestration layer on top of existing functionalities.
-This means that the complete checkout experience is still available and existing merchants will not have to change anything to their existing workflow. In fact, the 3 step `/paymentMethods`, `/payments`, `/payments/details` is still the way to go for more complex user flows.
-Adyen will be revisiting this topic in Q2 2022 and we will keep you updated on the potential upgrade regarding with `/session` endpoint usage with this integration.
+In v5.0.0 (released in October 2021) Adyen introduced a simplified way of integrating Web Components, using a single API endpoint `/sessions`. It is considered as a simplification of existing functionalities.
+The migration of this integration has been completed in February 2023. For new merchants, now you can use Adyen web components v5.0.0 with this integration to complete the checkout process.
+Since the newly-introduced endpoint `/sessions` aims at replacing the endpoints `/payments` and `/payments/details`. Our integration supports the requests to these two existing endpoints for advanced user flows.
+This means that the complete checkout experience is still available and existing merchants will not have to change anything to their existing workflow.
 
 ### Does the integration support payment method X ?
 
 Integration supports all [Adyen Web Component](https://docs.adyen.com/checkout/components-web) based payment methods. For a full list of payment methods please refer to [supported payment methods](https://docs.adyen.com/checkout/supported-payment-methods).
 If you encounter any problems during your integration, feel free to create a github issue.
 
-### Can I pass additional fields to payment requests?
+### Can I pass additional fields to payment session request?
 
-Yes, you could include additional fields to payment such as [add risk management fields](https://docs.adyen.com/risk-management/configure-standard-risk-rules/required-risk-field-reference), [activate 3D Secure 2](https://docs.adyen.com/online-payments/3d-secure/native-3ds2/web-component#make-a-payment) or [allow recurring payments](https://docs.adyen.com/payment-methods/cards/web-component#create-a-token) based on the payment method that you use, for more details please check the note in [important section](../extension/docs/WebComponentsIntegrationGuide.md#step-5-make-a-payment) on our integration docs.
+Yes, you could include additional fields to payment session request such as [add risk management fields](https://docs.adyen.com/risk-management/configure-standard-risk-rules/required-risk-field-reference) or [allow recurring payments](https://docs.adyen.com/payment-methods/cards/web-component#create-a-token) based on the payment method that you use, for more details please check the note in [important section](../extension/docs/WebComponentsIntegrationGuide.md#step-5-make-a-payment) on our integration docs.
 
-### Why we need to pass submit payment details twice for some payment methods?
+### Do we need to pass additional fields to payment requests for 3D secure 2 payment method?
 
-For some payment methods you need to submitAdditionalPaymentDetails twice based on the returned action from Adyen (such as 3DS v2 with IdentifyShopper and ChallengeShopper), please follow instructions in [here](../extension/docs/WebComponentsIntegrationGuide.md#action-response-1) for more details.
+According to the Adyen documentation, it is not required after web component version 5. Since we are now using /session` endpoint which does not require additional configuration for 3D secure.
+[adyen documentation](https://docs.adyen.com/online-payments/3d-secure/native-3ds2/web-component)
 
 ### Can I remove a subscription I created?
 
@@ -95,7 +97,7 @@ Both approaches have their good and bad sides, but we found out that creating an
 #### What to consider when creating an order _AFTER_ a successful commercetools payment ?
 
 - **Shop (success redirect URL) is not reachable due to the network issues**: Since shop creates an order and success shop redirect URL can not be reached we might end up with a successful payment but no order.
-  - **Possible solution**: Create an order asynchronously based on the payment transaction changes, which delivery is guaranteed due to the asynchronous notifications from Adyen. Depending on your preference you might either query for the latest messages of type [PaymentTransactionAdded](https://docs.commercetools.com/api/message-types#paymenttransactionadded-message), [PaymentTransactionStateChanged](https://docs.commercetools.com/api/message-types#paymenttransactionstatechanged-message) or [subscribe](https://docs.commercetools.com/api/projects/subscriptions#create-a-subscription) to the mentioned message types. Every [message](https://docs.commercetools.com/api/message-types#message) will link its payment through the `resource` field and since every payment is attached to a cart one has all the informations at hand to decide if the cart has to be converted to order or not. Since the job or worker processing the message is not a usual place where the order is created it might be reasonable to pass the cart ID to another service or web shop URL which will verify the cart and create an order out of it.
+  - **Possible solution**: Create an order asynchronously based on the payment transaction changes, which delivery is guaranteed due to the asynchronous notifications from Adyen. Depending on your preference you might either query for the latest messages of type [PaymentTransactionAdded](https://docs.commercetools.com/api/message-types#paymenttransactionadded-message), [PaymentTransactionStateChanged](https://docs.commercetools.com/api/message-types#paymenttransactionstatechanged-message) or [subscribe](https://docs.commercetools.com/api/projects/subscriptions#create-a-subscription) to the mentioned message types. Every [message](https://docs.commercetools.com/api/message-types#message) will link its payment through the `resource` field and since every payment is attached to a cart one has all the informations at hand to decide if the cart has to be converted to order or not. Since the job or worker processing the message is not a usual place where the order is created it might be reasonable to pass the cart ID to another service or web shop URL which will verify the cart and create an order out of it. An example implementation which follows the described approach is shown by [commercetools-payment-to-order-processor](https://github.com/commercetools/commercetools-payment-to-order-processor)
 - **More than 1 successful payments on the cart/order**: It is possible to have more than 1 valid payments on the cart/order. It could happen for example when customer initiates a payment in two different tabs for the same cart and both payments are of type redirect (like credit card and paypal.
   These two payments can be completed independently in both tabs. Since every payment should be always attached to the cart this would make a cart to link two successful payments.
   - **Possible solution**: [Refund](https://github.com/commercetools/commercetools-adyen-integration/blob/master/extension/docs/Refund.md) one of the successful payments. Similar as in case of `Create an order based on transaction state changes` above one could process the same message types in order to figure out if the cart has to many successful payments and create a refund.

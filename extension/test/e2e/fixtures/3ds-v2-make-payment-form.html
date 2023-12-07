@@ -1,12 +1,12 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <title>Make Payment</title>
     <link
       rel="stylesheet"
-      href="https://checkoutshopper-live.adyen.com/checkoutshopper/sdk/4.3.0/adyen.css"
-      integrity="sha384-5CDvDZiVPuf+3ZID0lh0aaUHAeky3/ACF1YAKzPbn3GEmzWgO53gP6stiYHWIdpB"
+      href="https://checkoutshopper-live.adyen.com/checkoutshopper/sdk/5.53.2/adyen.css"
+      integrity="sha384-9EdBqZRrjozkt+Be5ycjHBTi+4DYrafpC1KyPnNyTBfjBIZ5+oMp8BbgvPLGgsE0"
       crossorigin="anonymous"
     />
   </head>
@@ -37,8 +37,8 @@ Make payment request will come here</textarea
     <div id="component-container"></div>
 
     <script
-      src="https://checkoutshopper-live.adyen.com/checkoutshopper/sdk/4.3.0/adyen.js"
-      integrity="sha384-cNkiBPQRGouJfbstYuSccx2XkGe3RB28iYrjge6rLIDtex7fk5+3/E9f4EZ34fxE"
+      src="https://checkoutshopper-live.adyen.com/checkoutshopper/sdk/5.53.2/adyen.js"
+      integrity="sha384-ng3HLoZIlQ3BLgyGyGNiwWSx6LEPIlmxVuGRw72skZFt9mL8OweRjp7vcPzSqxTj"
       crossorigin="anonymous"
     ></script>
     <script type="application/javascript">
@@ -48,13 +48,6 @@ Make payment request will come here</textarea
         clientKey: '', // Your client key. To find out how to generate one, see https://docs.adyen.com/development-resources/client-side-authentication.
         paymentMethodsResponse: {
           paymentMethods: [
-            {
-              configuration: {
-                intent: 'capture',
-              },
-              name: 'PayPal',
-              type: 'paypal',
-            },
             {
               brands: [
                 'visa',
@@ -93,112 +86,6 @@ Make payment request will come here</textarea
               ],
               name: 'Kreditkarte',
               type: 'scheme',
-            },
-            {
-              name: 'Sofort.',
-              type: 'directEbanking',
-            },
-            {
-              details: [
-                {
-                  key: 'sepa.ownerName',
-                  type: 'text',
-                },
-                {
-                  key: 'sepa.ibanNumber',
-                  type: 'text',
-                },
-              ],
-              name: 'SEPA Lastschrift',
-              type: 'sepadirectdebit',
-            },
-            {
-              name: 'Rechnung mit Klarna.',
-              type: 'klarna',
-            },
-            {
-              name: 'GiroPay',
-              type: 'giropay',
-            },
-            {
-              name: 'Ratenkauf mit Klarna.',
-              type: 'klarna_account',
-            },
-            {
-              brand: 'givex',
-              details: [
-                {
-                  key: 'encryptedCardNumber',
-                  type: 'cardToken',
-                },
-                {
-                  key: 'encryptedSecurityCode',
-                  optional: true,
-                  type: 'cardToken',
-                },
-                {
-                  key: 'encryptedExpiryMonth',
-                  optional: true,
-                  type: 'cardToken',
-                },
-                {
-                  key: 'encryptedExpiryYear',
-                  optional: true,
-                  type: 'cardToken',
-                },
-                {
-                  key: 'encryptedPassword',
-                  optional: true,
-                  type: 'cardToken',
-                },
-                {
-                  key: 'holderName',
-                  optional: true,
-                  type: 'text',
-                },
-              ],
-              name: 'Givex',
-              type: 'giftcard',
-            },
-            {
-              name: 'Sofort bezahlen mit Klarna.',
-              type: 'klarna_paynow',
-            },
-            {
-              brand: 'svs',
-              details: [
-                {
-                  key: 'encryptedCardNumber',
-                  type: 'cardToken',
-                },
-                {
-                  key: 'encryptedSecurityCode',
-                  optional: true,
-                  type: 'cardToken',
-                },
-                {
-                  key: 'encryptedExpiryMonth',
-                  optional: true,
-                  type: 'cardToken',
-                },
-                {
-                  key: 'encryptedExpiryYear',
-                  optional: true,
-                  type: 'cardToken',
-                },
-                {
-                  key: 'encryptedPassword',
-                  optional: true,
-                  type: 'cardToken',
-                },
-                {
-                  key: 'holderName',
-                  optional: true,
-                  type: 'text',
-                },
-              ],
-              name: 'SVS',
-              type: 'giftcard',
             },
           ],
         }, // The payment methods response returned in step 1.
@@ -239,9 +126,9 @@ Make payment request will come here</textarea
       }
 
       const clientKeyElement = document.getElementById('adyen-client-key')
-      clientKeyElement.addEventListener('blur', () => {
+      clientKeyElement.addEventListener('blur', async () => {
         configuration.clientKey = clientKeyElement.value
-        const checkout = new AdyenCheckout(configuration)
+        const checkout = await AdyenCheckout(configuration)
         checkout.create('card').mount('#component-container')
       })
     </script>

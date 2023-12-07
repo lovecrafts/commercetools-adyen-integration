@@ -5,6 +5,7 @@
   - [Make an API call to capture a payment:](#make-an-api-call-to-capture-a-payment)
   - [Partial capture](#partial-capture)
   - [Retry capture requests](#retry-capture-requests)
+    - [Generating idempotency key by adyen-integration](#generating-idempotency-key-by-adyen-integration)
   - [Custom manual capture reference](#custom-manual-capture-reference)
   - [More info on capture](#more-info-on-capture)
 
@@ -18,7 +19,7 @@ By default, payments are captured immediately (or with [delay](https://docs.adye
 
 ### Make an API call to capture a payment:
 
-To capture a payment manually, [add a transaction](https://docs.commercetools.com/http-api-projects-payments#add-transaction) with type `Charge` and state `Initial` to the commercetools payment.
+To capture a payment manually, [add a transaction](https://docs.commercetools.com/api/projects/payments#add-transaction) with type `Charge` and state `Initial` to the commercetools payment.
 
 ```json
 {

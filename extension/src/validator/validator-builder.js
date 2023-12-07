@@ -36,6 +36,10 @@ function withPayment(paymentObject) {
     },
     validateRequestFields() {
       if (!paymentObject.custom) return this
+      if (!isValidJSON(paymentObject.custom.fields.createSessionRequest))
+        errors.createSessionRequest =
+          errorMessages.CREATE_SESSION_REQUEST_INVALID_JSON
+
       if (!isValidJSON(paymentObject.custom.fields.getPaymentMethodsRequest))
         errors.getPaymentMethodsRequest =
           errorMessages.GET_PAYMENT_METHODS_REQUEST_INVALID_JSON
@@ -44,11 +48,12 @@ function withPayment(paymentObject) {
           errorMessages.MAKE_PAYMENT_REQUEST_INVALID_JSON
       if (
         !isValidJSON(
-          paymentObject.custom.fields.submitAdditionalPaymentDetailsRequest
+          paymentObject.custom.fields.submitAdditionalPaymentDetailsRequest,
         )
       )
         errors.submitAdditionalPaymentDetailsRequest =
           errorMessages.SUBMIT_ADDITIONAL_PAYMENT_DETAILS_REQUEST_INVALID_JSON
+
       if (!isValidJSON(paymentObject.custom.fields.getCarbonOffsetCostsRequest))
         errors.getCarbonOffsetCostsRequest =
           errorMessages.GET_CARBON_OFFSET_COSTS_REQUEST_INVALID_JSON
@@ -58,30 +63,69 @@ function withPayment(paymentObject) {
       return this
     },
     validateReference() {
-      if (!paymentObject.custom || errors.makePaymentRequest) return this
+      if (
+        !paymentObject.custom ||
+        errors.createSessionRequest ||
+        errors.makePaymentRequest
+      )
+        return this
+
+      if (
+        paymentObject.custom.fields.createSessionRequest &&
+        !paymentObject.custom.fields.createSessionResponse
+      ) {
+        const createSessionRequestObj = JSON.parse(
+          paymentObject.custom.fields.createSessionRequest,
+        )
+        if (!createSessionRequestObj.reference)
+          errors.missingReference =
+            errorMessages.CREATE_SESSION_REQUEST_MISSING_REFERENCE
+      }
+
       if (
         paymentObject.custom.fields.makePaymentRequest &&
         !paymentObject.custom.fields.makePaymentResponse
       ) {
         const makePaymentRequestObj = JSON.parse(
-          paymentObject.custom.fields.makePaymentRequest
+          paymentObject.custom.fields.makePaymentRequest,
         )
         if (!makePaymentRequestObj.reference)
           errors.missingReference =
             errorMessages.MAKE_PAYMENT_REQUEST_MISSING_REFERENCE
       }
+
       return this
     },
     validateAmountPlanned() {
-      let amount
+      let createSessionAmount
+      let makePaymentAmount
+      const createSessionRequestInterfaceInteraction =
+        getLatestInterfaceInteraction(
+          paymentObject.interfaceInteractions,
+          c.CTP_INTERACTION_TYPE_CREATE_SESSION,
+        )
       const makePaymentRequestInterfaceInteraction =
         getLatestInterfaceInteraction(
           paymentObject.interfaceInteractions,
-          c.CTP_INTERACTION_TYPE_MAKE_PAYMENT
+          c.CTP_INTERACTION_TYPE_MAKE_PAYMENT,
         )
+
+      if (createSessionRequestInterfaceInteraction)
+        createSessionAmount = JSON.parse(
+          createSessionRequestInterfaceInteraction.fields.request,
+        ).amount
+      else {
+        const createSessionRequestString =
+          paymentObject.custom &&
+          paymentObject.custom.fields &&
+          paymentObject.custom.fields.createSessionRequest
+        if (createSessionRequestString)
+          createSessionAmount = JSON.parse(createSessionRequestString).amount
+      }
+
       if (makePaymentRequestInterfaceInteraction)
-        amount = JSON.parse(
-          makePaymentRequestInterfaceInteraction.fields.request
+        makePaymentAmount = JSON.parse(
+          makePaymentRequestInterfaceInteraction.fields.request,
         ).amount
       else {
         const makePaymentRequestString =
@@ -89,19 +133,35 @@ function withPayment(paymentObject) {
           paymentObject.custom.fields &&
           paymentObject.custom.fields.makePaymentRequest
         if (makePaymentRequestString)
-          amount = JSON.parse(makePaymentRequestString).amount
+          makePaymentAmount = JSON.parse(makePaymentRequestString).amount
       }
-      if (amount) {
-        const amountInMakePaymentRequest = Number(amount.value)
+
+      if (createSessionAmount) {
+        const amountInCreateSessionRequest = Number(createSessionAmount.value)
         const amountPlannedValue = paymentObject.amountPlanned.centAmount
-        const currencyInMakePaymentRequest = amount.currency
+        const currencyInCreateSessionRequest = createSessionAmount.currency
+        const currencyInAmountPlanned = paymentObject.amountPlanned.currencyCode
+        if (
+          amountInCreateSessionRequest !== amountPlannedValue ||
+          currencyInCreateSessionRequest !== currencyInAmountPlanned
+        )
+          errors.amountPlanned =
+            errorMessages.CREATE_SESSION_AMOUNT_PLANNED_NOT_SAME
+      }
+
+      if (makePaymentAmount) {
+        const amountInMakePaymentRequest = Number(makePaymentAmount.value)
+        const amountPlannedValue = paymentObject.amountPlanned.centAmount
+        const currencyInMakePaymentRequest = makePaymentAmount.currency
         const currencyInAmountPlanned = paymentObject.amountPlanned.currencyCode
         if (
           amountInMakePaymentRequest !== amountPlannedValue ||
           currencyInMakePaymentRequest !== currencyInAmountPlanned
         )
-          errors.amountPlanned = errorMessages.AMOUNT_PLANNED_NOT_SAME
+          errors.amountPlanned =
+            errorMessages.MAKE_PAYMENT_AMOUNT_PLANNED_NOT_SAME
       }
+
       return this
     },
     validatePaymentPspReference() {
@@ -111,7 +171,7 @@ function withPayment(paymentObject) {
         !paymentObject.custom.fields.amountUpdatesResponse
       ) {
         const amountUpdatesRequestObj = JSON.parse(
-          paymentObject.custom.fields.amountUpdatesRequest
+          paymentObject.custom.fields.amountUpdatesRequest,
         )
         if (!amountUpdatesRequestObj.paymentPspReference)
           errors.missingPspReference =

@@ -9,15 +9,25 @@ export default class CreditCardMakePaymentFormPage extends MakePaymentFormPage {
     clientKey,
   }) {
     await this.generateAdyenMakePaymentForm(clientKey)
-    await executeInAdyenIframe(this.page, '#encryptedCardNumber', (el) =>
-      el.type(creditCardNumber)
+
+    await this.page.waitForTimeout(2_000) // wait for web component rendering
+
+    await executeInAdyenIframe(
+      this.page,
+      '[data-fieldtype=encryptedCardNumber]',
+      (el) => el.type(creditCardNumber),
     )
-    await executeInAdyenIframe(this.page, '#encryptedExpiryDate', (el) =>
-      el.type(creditCardDate)
+    await executeInAdyenIframe(
+      this.page,
+      'input[data-fieldtype^=encryptedExpiry]',
+      (el) => el.type(creditCardDate),
     )
-    await executeInAdyenIframe(this.page, '#encryptedSecurityCode', (el) =>
-      el.type(creditCardCvc)
+    await executeInAdyenIframe(
+      this.page,
+      'input[data-fieldtype^=encryptedSecurity]',
+      (el) => el.type(creditCardCvc),
     )
+
     return this.getMakePaymentRequestTextAreaValue()
   }
 }

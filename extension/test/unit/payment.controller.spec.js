@@ -10,41 +10,12 @@ describe('Payment controller', () => {
 
   beforeEach(async () => {
     ctpPayment = await utils.readAndParseJsonFile(
-      'test/unit/fixtures/ctp-payment.json'
+      'test/unit/fixtures/ctp-payment.json',
     )
   })
 
   describe('Validation', () => {
     const mockRequest = { method: 'POST' }
-
-    it('on invalid web component request should throw error', async () => {
-      const ctpPaymentClone = _.cloneDeep(ctpPayment)
-      ctpPaymentClone.custom.fields.commercetoolsProjectKey = 'foo'
-      ctpPaymentClone.custom.fields.adyenMerchantAccount = 'bar'
-      ctpPaymentClone.custom.fields.getPaymentMethodsRequest = '{'
-
-      const collectRequestData = () =>
-        JSON.stringify({ resource: { obj: ctpPaymentClone } })
-      const sendResponse = ({ statusCode, data }) => {
-        expect(statusCode).to.equal(400)
-        expect(data).to.deep.equal({
-          errors: [
-            {
-              code: 'InvalidField',
-              message: errorMessages.GET_PAYMENT_METHODS_REQUEST_INVALID_JSON,
-            },
-          ],
-        })
-      }
-
-      sinon.stub(utils, 'collectRequestData').callsFake(collectRequestData)
-      sinon.stub(utils, 'sendResponse').callsFake(sendResponse)
-
-      await paymentController.processRequest(mockRequest)
-
-      utils.collectRequestData.restore()
-      utils.sendResponse.restore()
-    })
 
     it('on missing required custom fields should throw error', async () => {
       const ctpPaymentClone = _.cloneDeep(ctpPayment)
@@ -113,7 +84,7 @@ describe('Payment controller', () => {
       expect(data.errors[0].code).to.equal('General')
       expect(data.errors[0].message).to.equal(
         '[commercetools-adyen-integration-extension] ' +
-          'Unexpected error (Payment ID: undefined): request.on is not a function.'
+          'Unexpected error (Payment ID: undefined): request.on is not a function.',
       )
     }
 

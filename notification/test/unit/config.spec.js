@@ -30,7 +30,7 @@ describe('::config::', () => {
       expect.fail('This test should throw an error, but it did not')
     } catch (e) {
       expect(e.message).to.contain(
-        'The "secretHmacKey" config variable is missing to be able to verify notifications'
+        'The "secretHmacKey" config variable is missing to be able to verify notifications',
       )
     }
   })
@@ -62,7 +62,7 @@ describe('::config::', () => {
       })
       const config = await reloadModule('../../src/config/config.js')
       expect(config.default.getModuleConfig().removeSensitiveData).to.eql(false)
-    }
+    },
   )
 
   it(
@@ -88,7 +88,7 @@ describe('::config::', () => {
       })
       const config = await reloadModule('../../src/config/config.js')
       expect(config.default.getModuleConfig().removeSensitiveData).to.eql(true)
-    }
+    },
   )
 
   it(
@@ -114,7 +114,7 @@ describe('::config::', () => {
       })
       const config = await reloadModule('../../src/config/config.js')
       expect(config.default.getModuleConfig().removeSensitiveData).to.eql(false)
-    }
+    },
   )
 
   it(
@@ -140,18 +140,21 @@ describe('::config::', () => {
       })
       const config = await reloadModule('../../src/config/config.js')
       expect(config.default.getModuleConfig().removeSensitiveData).to.eql(true)
-    }
+    },
   )
 
   it('when ADYEN_INTEGRATION_CONFIG is not valid JSON, it should throw error', async () => {
+    const originalAdyenConfig = process.env.ADYEN_INTEGRATION_CONFIG
     process.env.ADYEN_INTEGRATION_CONFIG = '{"a"}'
     try {
       await reloadModule('../../src/config/config.js')
       expect.fail('This test should throw an error, but it did not')
     } catch (e) {
       expect(e.message).to.contain(
-        'configuration is not provided in the JSON format'
+        'configuration is not provided in the JSON format',
       )
+    } finally {
+      process.env.ADYEN_INTEGRATION_CONFIG = originalAdyenConfig
     }
   })
 
@@ -159,6 +162,7 @@ describe('::config::', () => {
     'when ADYEN_INTEGRATION_CONFIG is not set but external file is configured, ' +
       'then it should load configuration correctly',
     async () => {
+      const originalAdyenConfig = process.env.ADYEN_INTEGRATION_CONFIG
       const notificationConfigFileName = '.notificationrc'
       const tempFileName = '.notificationrctemp'
 
@@ -187,7 +191,7 @@ describe('::config::', () => {
 
         const loadedConfig = await reloadModule('../../src/config/config.js')
         expect(
-          loadedConfig.default.getCtpConfig('ctpProjectKey1')
+          loadedConfig.default.getCtpConfig('ctpProjectKey1'),
         ).to.deep.equal({
           clientId: 'clientId',
           clientSecret: 'clientSecret',
@@ -196,7 +200,7 @@ describe('::config::', () => {
           projectKey: 'ctpProjectKey1',
         })
         expect(
-          loadedConfig.default.getAdyenConfig('adyenMerchantAccount1')
+          loadedConfig.default.getAdyenConfig('adyenMerchantAccount1'),
         ).to.deep.equal({
           enableHmacSignature: false,
           secretHmacKey: undefined,
@@ -206,8 +210,9 @@ describe('::config::', () => {
       } finally {
         fs.unlinkSync(filePath)
         renameNotificationrcFile(tempFileName, notificationConfigFileName)
+        process.env.ADYEN_INTEGRATION_CONFIG = originalAdyenConfig
       }
-    }
+    },
   )
 
   function renameNotificationrcFile(fileName, fileNameToRename) {

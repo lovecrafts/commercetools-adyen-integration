@@ -1,14 +1,16 @@
 import { withPayment } from '../validator/validator-builder.js'
-import getPaymentMethodsHandler from './get-payment-methods.handler.js'
-import execute from './make-payment.handler.js'
+import makePaymentHandler from './make-payment.handler.js'
 import makeLineitemsPaymentHandler from './make-lineitems-payment.handler.js'
 import submitPaymentDetailsHandler from './submit-payment-details.handler.js'
 import manualCaptureHandler from './manual-capture.handler.js'
 import cancelHandler from './cancel-payment.handler.js'
 import refundHandler from './refund-payment.handler.js'
+import getPaymentMethodsHandler from './get-payment-methods.handler.js'
 import getCarbonOffsetCostsHandler from './get-carbon-offset-costs.handler.js'
 import amountUpdatesHandler from './amount-updates.handler.js'
 import disableStoredPaymentHandler from './disable-stored-payment.handler.js'
+import sessionRequestHandler from './sessions-request.handler.js'
+import lineItemSessionRequestHandler from './sessions-line-items-request.handler.js'
 import {
   getChargeTransactionInitial,
   getAuthorizationTransactionSuccess,
@@ -17,14 +19,7 @@ import {
 } from './payment-utils.js'
 import { isBasicAuthEnabled } from '../validator/authentication.js'
 import errorMessages from '../validator/error-messages.js'
-import constants from '../config/constants.js'
 import config from '../config/config.js'
-
-const {
-  PAYMENT_METHOD_TYPE_KLARNA_METHODS,
-  PAYMENT_METHOD_TYPE_AFFIRM_METHODS,
-  PAYMENT_METHODS_WITH_REQUIRED_LINE_ITEMS,
-} = constants
 
 async function handlePayment(paymentObject, authToken) {
   if (isBasicAuthEnabled() && !authToken) {
@@ -40,7 +35,7 @@ async function handlePayment(paymentObject, authToken) {
 
   const validatePaymentErrors = _validatePaymentRequest(
     paymentObject,
-    authToken
+    authToken,
   )
   if (validatePaymentErrors)
     return {
@@ -49,7 +44,7 @@ async function handlePayment(paymentObject, authToken) {
 
   const handlers = _getPaymentHandlers(paymentObject)
   const handlerResponses = await Promise.all(
-    handlers.map((handler) => handler.execute(paymentObject))
+    handlers.map((handler) => handler.execute(paymentObject)),
   )
   const handlerResponse = {
     actions: handlerResponses.flatMap((result) => result.actions),
@@ -73,49 +68,78 @@ function _getPaymentHandlers(paymentObject) {
   if (!paymentObject.custom) return []
 
   const handlers = []
+  const customFields = paymentObject.custom.fields
+
   if (
-    paymentObject.custom.fields.getPaymentMethodsRequest &&
-    !paymentObject.custom.fields.getPaymentMethodsResponse
-  )
-    handlers.push(getPaymentMethodsHandler)
-  if (
-    paymentObject.custom.fields.getCarbonOffsetCostsRequest &&
-    !paymentObject.custom.fields.getCarbonOffsetCostsResponse
-  )
-    handlers.push(getCarbonOffsetCostsHandler)
-  if (
-    paymentObject.custom.fields.makePaymentRequest &&
-    !paymentObject.custom.fields.makePaymentResponse
+    customFields.getPaymentMethodsRequest &&
+    !customFields.getPaymentMethodsResponse
   ) {
-    const makePaymentRequestObj = JSON.parse(
-      paymentObject.custom.fields.makePaymentRequest
-    )
+    handlers.push(getPaymentMethodsHandler)
+  }
+
+  if (customFields.makePaymentRequest && !customFields.makePaymentResponse) {
+    const makePaymentRequestObj = JSON.parse(customFields.makePaymentRequest)
     if (_requiresLineItems(makePaymentRequestObj))
       handlers.push(makeLineitemsPaymentHandler)
-    else handlers.push(execute)
+    else handlers.push(makePaymentHandler)
   }
+
   if (
-    paymentObject.custom.fields.makePaymentResponse &&
-    paymentObject.custom.fields.submitAdditionalPaymentDetailsRequest &&
-    !paymentObject.custom.fields.submitAdditionalPaymentDetailsResponse
+    customFields.makePaymentResponse &&
+    customFields.submitAdditionalPaymentDetailsRequest &&
+    !customFields.submitAdditionalPaymentDetailsResponse
   )
     handlers.push(submitPaymentDetailsHandler)
+
   if (
-    paymentObject.custom.fields.amountUpdatesRequest &&
-    !paymentObject.custom.fields.amountUpdatesResponse
-  )
+    customFields.createSessionRequest &&
+    !customFields.createSessionResponse
+  ) {
+    const createSessionRequestHandler = _getCreateSessionRequestHandler(
+      customFields.createSessionRequest,
+    )
+    handlers.push(createSessionRequestHandler)
+  }
+
+  if (
+    customFields.getCarbonOffsetCostsRequest &&
+    !customFields.getCarbonOffsetCostsResponse
+  ) {
+    handlers.push(getCarbonOffsetCostsHandler)
+  }
+
+  if (
+    customFields.amountUpdatesRequest &&
+    !customFields.amountUpdatesResponse
+  ) {
     handlers.push(amountUpdatesHandler)
+  }
+
   if (
     getAuthorizationTransactionSuccess(paymentObject) &&
     getChargeTransactionInitial(paymentObject)
-  )
+  ) {
     handlers.push(manualCaptureHandler)
+  }
+
   if (
-    paymentObject.custom.fields.disableStoredPaymentRequest &&
-    !paymentObject.custom.fields.disableStoredPaymentResponse
-  )
+    customFields.disableStoredPaymentRequest &&
+    !customFields.disableStoredPaymentResponse
+  ) {
     handlers.push(disableStoredPaymentHandler)
+  }
+
   return handlers
+}
+
+function _getCreateSessionRequestHandler(createSessionRequest) {
+  const createSessionRequestObj = JSON.parse(createSessionRequest)
+
+  if (_requiresLineItems(createSessionRequestObj)) {
+    return lineItemSessionRequestHandler
+  }
+
+  return sessionRequestHandler
 }
 
 function _validatePaymentRequest(paymentObject, authToken) {
@@ -145,10 +169,9 @@ function _validatePaymentRequest(paymentObject, authToken) {
   return null
 }
 
-function _requiresLineItems(makePaymentRequestObj) {
-  const addCommercetoolsLineItemsFlag = _getAddCommercetoolsLineItemsFlag(
-    makePaymentRequestObj
-  )
+function _requiresLineItems(requestObj) {
+  const addCommercetoolsLineItemsFlag =
+    _getAddCommercetoolsLineItemsFlag(requestObj)
   if (
     addCommercetoolsLineItemsFlag === true ||
     addCommercetoolsLineItemsFlag === false
@@ -156,63 +179,28 @@ function _requiresLineItems(makePaymentRequestObj) {
     return addCommercetoolsLineItemsFlag
   }
 
-  if (_isKlarna(makePaymentRequestObj) || _isAffirm(makePaymentRequestObj))
-    return true
-
   const addCommercetoolsLineItemsAppConfigFlag =
     config.getModuleConfig().addCommercetoolsLineItems
-  if (addCommercetoolsLineItemsAppConfigFlag === true)
-    return _isPaymentMethodRequiresLineItems(makePaymentRequestObj)
+  if (addCommercetoolsLineItemsAppConfigFlag === true) return true
 
   return false
 }
 
-function _getAddCommercetoolsLineItemsFlag(makePaymentRequestObj) {
+function _getAddCommercetoolsLineItemsFlag(requestObj) {
   // The function is tend to be used to check values on the field: true, false, undefined,
   // or the value set but not to true/false
   // in case of the undefined or other than true/false, the function returns undefined:
   // it means the other fallbacks have to be checked to decide adding line items
   let addCommercetoolsLineItems
-  if ('addCommercetoolsLineItems' in makePaymentRequestObj) {
+  if ('addCommercetoolsLineItems' in requestObj) {
     if (
-      makePaymentRequestObj.addCommercetoolsLineItems === true ||
-      makePaymentRequestObj.addCommercetoolsLineItems === false
+      requestObj.addCommercetoolsLineItems === true ||
+      requestObj.addCommercetoolsLineItems === false
     ) {
-      addCommercetoolsLineItems =
-        makePaymentRequestObj.addCommercetoolsLineItems
+      addCommercetoolsLineItems = requestObj.addCommercetoolsLineItems
     }
   }
   return addCommercetoolsLineItems
-}
-
-function _isKlarna(makePaymentRequestObj) {
-  return (
-    makePaymentRequestObj.paymentMethod &&
-    PAYMENT_METHOD_TYPE_KLARNA_METHODS.includes(
-      makePaymentRequestObj.paymentMethod.type
-    )
-  )
-}
-
-function _isAffirm(makePaymentRequestObj) {
-  return (
-    makePaymentRequestObj.paymentMethod &&
-    PAYMENT_METHOD_TYPE_AFFIRM_METHODS.includes(
-      makePaymentRequestObj.paymentMethod.type
-    )
-  )
-}
-
-function _isPaymentMethodRequiresLineItems(makePaymentRequestObj) {
-  if (makePaymentRequestObj.paymentMethod) {
-    const paymentMethodType = makePaymentRequestObj.paymentMethod.type
-    for (const type of PAYMENT_METHODS_WITH_REQUIRED_LINE_ITEMS) {
-      if (paymentMethodType.startsWith(type)) {
-        return true
-      }
-    }
-  }
-  return false
 }
 
 function _isCancelPayment(paymentObject) {
