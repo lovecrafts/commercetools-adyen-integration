@@ -5,7 +5,7 @@ import { getAuthorizationRequestHeader } from './src/validator/authentication.js
 let handler = async (event) => {
   let paymentObj = {}
   try {
-    console.log('event body: ', JSON.parse(event.body));
+    console.log('event: ', event);
     const body = event.body ? JSON.parse(event.body) : event
     paymentObj = body?.resource?.obj
     if (!paymentObj)
