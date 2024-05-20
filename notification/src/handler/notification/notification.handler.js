@@ -377,6 +377,7 @@ async function getTransactionTypeAndStateOrNull(notificationRequestItem) {
   )
   const adyenEventCode = notificationRequestItem.eventCode
   const adyenEventSuccess = notificationRequestItem.success
+  const adyenEventFailReason = notificationRequestItem.reason
 
   // eslint-disable-next-line max-len
   const adyenEvent = _.find(
@@ -398,6 +399,19 @@ async function getTransactionTypeAndStateOrNull(notificationRequestItem) {
     if (modificationAction === 'refund') adyenEvent.transactionType = 'Refund'
     else if (modificationAction === 'cancel')
       adyenEvent.transactionType = 'CancelAuthorization'
+  }
+
+  // If payment authorization fails due to fraud cancellation, 
+  // the transactionState would be pending. This causes an issue where 
+  // an attempt to capture the payment in the capture lambda is made, 
+  // but the payment is never authorized. To prevent this, we set the 
+  // transactionState to "Failure" in such cases.
+  const isAuthorizationFraudCancelled =
+   adyenEventCode === "AUTHORISATION" && adyenEventSuccess === "false" &&
+    adyenEventFailReason === "FRAUD-CANCELLED"
+    
+  if (adyenEvent && isAuthorizationFraudCancelled) {
+    adyenEvent.transactionState = "Failure"
   }
   return (
     adyenEvent || {
