@@ -7,6 +7,13 @@
   },
   {
     "eventCode": "AUTHORISATION",
+    "success": "false",
+    "transactionType": "Authorization",
+    "transactionState": "Failure",
+    "reason": "FRAUD-CANCELLED"
+  },
+  {
+    "eventCode": "AUTHORISATION",
     "success": "true",
     "transactionType": "Authorization",
     "transactionState": "Success"
