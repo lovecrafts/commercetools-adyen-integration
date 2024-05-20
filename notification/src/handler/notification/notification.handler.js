@@ -380,7 +380,7 @@ async function getTransactionTypeAndStateOrNull(notificationRequestItem) {
   const adyenEventFailReason = notificationRequestItem.reason
 
   // eslint-disable-next-line max-len
-  let foundEvent = null;
+  let adyenEvent = null;
   _.find(adyenEvents, (e) => {
     if (e.eventCode === adyenEventCode && e.success === adyenEventSuccess) {
       if (adyenEventFailReason && e.reason === adyenEventFailReason) {
@@ -393,7 +393,7 @@ async function getTransactionTypeAndStateOrNull(notificationRequestItem) {
     }
     return false;
   });
-  console.log('foundEvent: ', foundEvent);
+  console.log('adyenEvent: ', adyenEvent);
   delete adyenEvent.reason
   if (adyenEvent && adyenEventCode === 'CANCEL_OR_REFUND') {
     /* we need to get correct action from the additional data, for example:
