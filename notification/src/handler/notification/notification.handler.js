@@ -384,7 +384,7 @@ async function getTransactionTypeAndStateOrNull(notificationRequestItem) {
     adyenEvents,
     (e) => 
       (e.eventCode === adyenEventCode && e.success === adyenEventSuccess && e.reason === adyenEventFailReason)
-       || (e.eventCode === adyenEventCode && e.success === adyenEventSuccess),
+       || (e.eventCode === adyenEventCode && e.success === adyenEventSuccess && !e.reason),
   )
   delete adyenEvent.reason
   if (adyenEvent && adyenEventCode === 'CANCEL_OR_REFUND') {
