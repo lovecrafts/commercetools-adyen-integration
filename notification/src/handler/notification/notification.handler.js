@@ -393,7 +393,6 @@ async function getTransactionTypeAndStateOrNull(notificationRequestItem) {
     }
     return false;
   });
-  console.log('adyenEvent: ', adyenEvent);
   delete adyenEvent.reason
   if (adyenEvent && adyenEventCode === 'CANCEL_OR_REFUND') {
     /* we need to get correct action from the additional data, for example:
