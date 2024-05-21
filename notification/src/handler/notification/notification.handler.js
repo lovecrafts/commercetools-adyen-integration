@@ -384,11 +384,11 @@ async function getTransactionTypeAndStateOrNull(notificationRequestItem) {
   _.find(adyenEvents, (e) => {
     if (e.eventCode === adyenEventCode && e.success === adyenEventSuccess) {
       if (adyenEventFailReason && e.reason === adyenEventFailReason) {
-        foundEvent = e;
+        adyenEvent = e;
         return true;
       }
-      if (!foundEvent) {
-        foundEvent = e;
+      if (!adyenEvent) {
+        adyenEvent = e;
       }
     }
     return false;
