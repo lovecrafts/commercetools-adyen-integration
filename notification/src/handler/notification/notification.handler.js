@@ -377,13 +377,13 @@ async function getTransactionTypeAndStateOrNull(notificationRequestItem) {
   )
   const adyenEventCode = notificationRequestItem.eventCode
   const adyenEventSuccess = notificationRequestItem.success
-  const adyenEventFailReason = notificationRequestItem.reason
+  const adyenEventReason = notificationRequestItem.reason
 
   // eslint-disable-next-line max-len
   let adyenEvent = null;
   _.find(adyenEvents, (e) => {
     if (e.eventCode === adyenEventCode && e.success === adyenEventSuccess) {
-      if (adyenEventFailReason && e.reason === adyenEventFailReason) {
+      if (adyenEventReason && e.reason === adyenEventReason) {
         adyenEvent = e;
         return true;
       }
