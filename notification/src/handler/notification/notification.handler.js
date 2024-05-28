@@ -377,12 +377,21 @@ async function getTransactionTypeAndStateOrNull(notificationRequestItem) {
   )
   const adyenEventCode = notificationRequestItem.eventCode
   const adyenEventSuccess = notificationRequestItem.success
+  const adyenEventReason = notificationRequestItem.reason
 
   // eslint-disable-next-line max-len
-  const adyenEvent = _.find(
-    adyenEvents,
-    (e) => e.eventCode === adyenEventCode && e.success === adyenEventSuccess,
-  )
+  let adyenEvent;
+  adyenEvents.forEach((e) => {
+    if (e.eventCode === adyenEventCode && e.success === adyenEventSuccess) {
+      if (adyenEventReason && e.reason === adyenEventReason) {
+        adyenEvent = e;
+      }
+      if (!adyenEvent) {
+        adyenEvent = e;
+      }
+    }
+  });
+
   if (adyenEvent && adyenEventCode === 'CANCEL_OR_REFUND') {
     /* we need to get correct action from the additional data, for example:
      "NotificationRequestItem":{
@@ -399,6 +408,7 @@ async function getTransactionTypeAndStateOrNull(notificationRequestItem) {
     else if (modificationAction === 'cancel')
       adyenEvent.transactionType = 'CancelAuthorization'
   }
+
   return (
     adyenEvent || {
       eventCode: adyenEventCode,

@@ -1,0 +1,22 @@
+
+{
+    "live" : "true",
+    "notificationItems" : [
+       {
+          "NotificationRequestItem" : {
+             "amount" : {
+                "currency" : "GBP",
+                "value" : 2066
+             },
+             "eventCode" : "AUTHORISATION",
+             "eventDate" : "2024-01-01T22:11:34+02:00",
+             "merchantAccountCode" : "LoveCraftsMakersLtd",
+             "merchantReference" : "99e3186e-1111-1111-1111-996c9fa8eb60",
+             "paymentMethod" : "mc_googlepay",
+             "pspReference" : "H457HXSFX1111111",
+             "reason" : "FRAUD-CANCELLED",
+             "success" : "false"
+          }
+       }
+    ]
+ }
